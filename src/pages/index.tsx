@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 
-const STATE = {
-  fetched: false,
-};
-
 export default function Home() {
+  const [message, setMessage] = useState<string | null> (null)
   const [tokens, setTokens] = useState<string[][]>([])
 
   const generate = async () => {
@@ -12,12 +9,20 @@ export default function Home() {
       // Browsers limit the number of SSE streams per domain.
       return;
     }
-    const stream = new EventSource('http://localhost:8080/bot/3?message=hello');
+
+    const stream = new EventSource('https://api.relay.network/robot-maker/bot/3?message=hello');
 
     setTokens((prev) => [...prev, []]);
 
     stream.addEventListener('message', (event) => {
-      const i = tokens.length === 0 ? 0 : tokens.length - 1;
+      const i = (() => {
+        if (tokens.length === 0) {
+          return 0;
+        } else {
+          return tokens.length - 1;
+        }
+      })();
+      
       setTokens((prev) => {
         return [
           ...prev.slice(0, i),
