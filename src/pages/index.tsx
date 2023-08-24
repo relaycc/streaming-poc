@@ -1,50 +1,87 @@
-import { useEffect, useState } from 'react'
+import { z } from "zod";
+import { useEffect, useState, useCallback } from "react";
 
 export default function Home() {
-  const [message, setMessage] = useState<string | null> (null)
-  const [tokens, setTokens] = useState<string[][]>([])
+  const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  const [messages, setMessages] = useState<
+    Record<string, string[] | undefined>
+  >({});
 
-  const generate = async () => {
-    if (tokens.length >= 6) {
-      // Browsers limit the number of SSE streams per domain.
+  useEffect(() => {
+    (async () => {
+      setEventSource((prev) => {
+        if (prev !== null) {
+          return prev;
+        }
+        const es = new EventSource(
+          "https://api.relay.network/robot/maker/listen",
+        );
+
+        es.addEventListener("message", (event) => {
+          try {
+            const json = JSON.parse(event.data);
+
+            const data = z
+              .object({ id: z.string().uuid(), txt: z.string() })
+              .parse(json);
+
+            setMessages((prev) => {
+              return {
+                ...prev,
+                [data.id]: [...(prev[data.id] ?? []), data.txt],
+              };
+            });
+          } catch (e) {
+            console.error("GOT A MALFORMED MESSAGE");
+            console.error(event);
+            console.error(e);
+          }
+        });
+
+        es.addEventListener("stop", () => {
+          console.log("stop received");
+        });
+
+        return es;
+      });
+    })();
+  }, []);
+
+  const generate = useCallback(async () => {
+    if (eventSource === null) {
       return;
     }
 
-    const stream = new EventSource('https://api.relay.network/robot-maker/bot/3?message=hello');
-
-    setTokens((prev) => [...prev, []]);
-
-    stream.addEventListener('message', (event) => {
-      const i = (() => {
-        if (tokens.length === 0) {
-          return 0;
-        } else {
-          return tokens.length - 1;
-        }
-      })();
-      
-      setTokens((prev) => {
-        return [
-          ...prev.slice(0, i),
-          [...prev[i], event.data],
-          ...prev.slice(i + 1),
-        ];
-      });
+    await fetch("https://api.relay.network/message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: `${Math.random()}${Math.random()}`,
+        message: "Please tell me what is MakerDAO",
+      }),
     });
-
-    stream.addEventListener('stop', () => {
-      console.log('stop received');
-    });
-  }
+  }, [eventSource]);
 
   return (
     <main>
       <button onClick={generate}>Generate</button>
-      {tokens.map((token, i) => (
-        <div key={i}>
-            <p>{token.join("")}</p>
+      {Object.entries(messages).map(([id, messages]) => (
+        <div key={id}>
+          <p>
+            {(() => {
+              if (messages === undefined) {
+                return "loading...";
+              } else if (messages.length === 0) {
+                return "no messages";
+              } else {
+                return messages.join("");
+              }
+            })()}
+          </p>
         </div>
       ))}
     </main>
-  )
+  );
 }
