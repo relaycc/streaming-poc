@@ -93,6 +93,7 @@ export default function Home() {
       if (prev !== null) {
         return prev;
       } else {
+        console.log("generating new user id");
         return String(Math.random());
       }
     });
@@ -143,9 +144,9 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: `${Math.random()}${Math.random()}`,
+          id: userId,
           event: "user-message",
-          interactionId: "test",
+          interactionId: userId,
           timestamp: Date.now(),
           data: {
             userId,
