@@ -135,22 +135,25 @@ export default function Home() {
       return;
     }
 
-    await fetch("http://localhost:8080/interaction/user-message", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: `${Math.random()}${Math.random()}`,
-        event: "user-message",
-        interactionId: "test",
-        timestamp: Date.now(),
-        data: {
-          userId,
-          text: messageInput,
+    await fetch(
+      "https://api.relay.network/robot-maker/interaction/user-message",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          id: `${Math.random()}${Math.random()}`,
+          event: "user-message",
+          interactionId: "test",
+          timestamp: Date.now(),
+          data: {
+            userId,
+            text: messageInput,
+          },
+        }),
+      },
+    );
   };
 
   return (
